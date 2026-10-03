@@ -16,7 +16,7 @@
 
 <br>
 
-![今日练习与复习安排](docs/images/app.png)
+![今日练习与复习安排](docs/images/overview.png)
 
 <p align="center"><sub>实际应用界面 · 图中账号与练习记录均为示例数据</sub></p>
 
