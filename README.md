@@ -4,7 +4,7 @@
 
 ## 下载与安装
 
-在 [GitHub Releases](https://github.com/devinfenn/leettrack/releases/latest) 下载 `LeetTrack-Setup-0.1.0-x64.exe`。支持 Windows 10/11 的 64 位系统。
+在 [GitHub Releases](https://github.com/devinfenn/leettrack/releases/latest) 下载 `LeetTrack-Setup-0.1.1-x64.exe`。支持 Windows 10/11 的 64 位系统。
 
 1. 双击安装包，按中文向导选择安装用户和目录。
 2. 安装完成后，从桌面或开始菜单打开 **LeetTrack**。

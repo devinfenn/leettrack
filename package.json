@@ -1,17 +1,18 @@
 {
   "name": "leettrack",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "LeetTrack 力扣中国站桌面练习记录与复习",
   "main": "src/main.cjs",
   "scripts": {
     "build:editor": "esbuild src/editor.mjs --bundle --format=iife --minify --outfile=src/vendor/editor.bundle.js",
-    "start": "electron .",
+    "start": "npm run prepare:desktop && electron .",
     "test": "node --test --test-isolation=none test/*.test.cjs",
-    "dist:win": "npm run build:editor && npm run build:icons && npm run build:notices && electron-builder --win nsis --x64 --publish never",
-    "pack:win": "npm run build:editor && npm run build:icons && npm run build:notices && electron-builder --win --x64 --dir --publish never",
+    "dist:win": "npm run prepare:desktop && npm run build:editor && npm run build:icons && npm run build:notices && electron-builder --win nsis --x64 --publish never",
+    "pack:win": "npm run prepare:desktop && npm run build:editor && npm run build:icons && npm run build:notices && electron-builder --win --x64 --dir --publish never",
     "build:icons": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-icons.ps1",
-    "build:notices": "node scripts/generate-notices.cjs"
+    "build:notices": "node scripts/generate-notices.cjs",
+    "prepare:desktop": "node node_modules/electron/install.js"
   },
   "devDependencies": {
     "electron": "44.5.1",
