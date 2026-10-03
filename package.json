@@ -1,0 +1,36 @@
+{
+  "name": "leettrack",
+  "version": "0.1.0",
+  "private": true,
+  "description": "LeetTrack 力扣中国站桌面练习记录与复习",
+  "main": "src/main.cjs",
+  "scripts": {
+    "build:editor": "esbuild src/editor.mjs --bundle --format=iife --minify --outfile=src/vendor/editor.bundle.js",
+    "start": "electron .",
+    "test": "node --test --test-isolation=none test/*.test.cjs",
+    "dist:win": "npm run build:editor && npm run build:icons && npm run build:notices && electron-builder --win nsis --x64 --publish never",
+    "pack:win": "npm run build:editor && npm run build:icons && npm run build:notices && electron-builder --win --x64 --dir --publish never",
+    "build:icons": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/create-icons.ps1",
+    "build:notices": "node scripts/generate-notices.cjs"
+  },
+  "devDependencies": {
+    "electron": "44.5.1",
+    "electron-builder": "26.15.3",
+    "esbuild": "0.28.2"
+  },
+  "dependencies": {
+    "@codemirror/lang-cpp": "6.0.3",
+    "@lezer/highlight": "1.2.5",
+    "codemirror": "6.0.2",
+    "dompurify": "3.4.16"
+  },
+  "author": {
+    "name": "devinfenn",
+    "url": "https://github.com/devinfenn"
+  },
+  "homepage": "https://github.com/devinfenn/leettrack",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/devinfenn/leettrack.git"
+  }
+}

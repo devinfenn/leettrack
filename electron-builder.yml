@@ -1,0 +1,40 @@
+appId: io.github.devinfenn.leettrack
+productName: LeetTrack
+asar: true
+compression: normal
+electronDist: node_modules/electron/dist
+directories:
+  output: dist
+  buildResources: build
+files:
+  - src/**
+  - package.json
+  - README.md
+  - THIRD_PARTY_NOTICES.md
+  - licenses/**
+  - '!src/ui-check.cjs'
+  - '!src/coding-ui-check.cjs'
+  - '!src/coding-live-check.cjs'
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/app.ico
+  artifactName: '${productName}-Setup-${version}-${arch}.${ext}'
+nsis:
+  oneClick: false
+  perMachine: false
+  allowElevation: true
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: always
+  createStartMenuShortcut: true
+  shortcutName: LeetTrack
+  uninstallDisplayName: LeetTrack
+  deleteAppDataOnUninstall: false
+  runAfterFinish: true
+  language: '2052'
+  installerLanguages:
+    - zh_CN
+    - en_US
+  include: build/installer.nsh

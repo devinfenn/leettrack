@@ -1,0 +1,68 @@
+.coding-page{max-width:1200px;flex:1;min-height:0;display:flex;flex-direction:column;padding:6px 0 22px}
+main.coding-active{padding:0 28px;overflow:hidden}
+.coding-toolbar{height:63px;flex-shrink:0;display:flex;align-items:center;gap:20px}
+.coding-problem-button{display:flex;align-items:center;gap:12px;min-width:0;max-width:54%;margin-right:auto;border:0;background:none;padding:8px 0;font-size:16px;color:#46566d;text-align:left}
+#coding-current-problem{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.coding-problem-button>span:last-child{font-size:13px;color:#a3afbf}
+.coding-mode{display:flex;gap:3px;border:1px solid #e0e6ee;border-radius:24px;padding:3px;background:#eaf0f555}
+.coding-mode button{border:0;background:none;border-radius:19px;color:#8a97a9;font-size:12px;padding:7px 16px}
+.coding-mode button.active{background:#fff;color:#495e7b;box-shadow:0 1px 4px #364b6610}
+.coding-language{font-size:11px;color:#95a0af;font-family:"Cascadia Code",Consolas,monospace}
+.coding-workspace{display:grid;grid-template-columns:minmax(255px,31%) minmax(0,1fr);gap:30px;flex:1;min-height:0}
+.coding-description{display:flex;flex-direction:column;min-height:0;padding:20px 4px 0 4px}
+.coding-description>header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:17px}
+#coding-difficulty{color:#849b8d;font-size:11px}
+#coding-difficulty[data-difficulty="Medium"]{color:#a38e75}
+#coding-difficulty[data-difficulty="Hard"]{color:#a18088}
+.coding-description h1{font-size:25px;line-height:1.6;letter-spacing:-.5px}
+.coding-description .text-button{font-size:11px}
+.statement-tabs{display:flex;gap:21px;margin-top:25px;flex-shrink:0;border-bottom:1px solid #e2e8ee}
+.statement-tabs button{font-size:12px;color:#93a0b2;border:0;border-bottom:1px solid transparent;background:none;padding:10px 0}
+.statement-tabs button.active{color:#546b87;border-bottom-color:#91a4bf}
+.statement-scroll{flex:1;min-height:0;overflow:auto;padding-right:12px;padding-top:8px}
+.coding-statement{font-size:13px;line-height:1.95;color:#6a788c;overflow-wrap:anywhere}
+.coding-statement p{margin:14px 0 19px}
+.coding-statement strong{font-weight:500;color:#526175}
+.coding-statement pre{font-family:"Cascadia Code",Consolas,monospace;white-space:pre-wrap;font-size:12px;line-height:1.9;padding:14px 16px;background:#eaf0f560;border-radius:9px;margin:20px 0}
+.coding-statement code{font-family:"Cascadia Code",Consolas,monospace;font-size:12px;color:#657d98}
+.coding-statement ul,.coding-statement ol{padding-left:20px}
+.coding-statement a{color:#6485a7}
+.coding-contract{white-space:pre-wrap;font:12px/2 "Segoe UI","Microsoft YaHei UI",sans-serif;color:#75859a;margin:14px 0}
+.coding-description-note{flex-shrink:0;font-size:10px;color:#96a1af;line-height:1.8;margin:13px 0 0}
+.coding-desk{display:flex;flex-direction:column;min-height:0;min-width:0;overflow:hidden;background:#ffffff9c;border:1px solid #e3e8ef;border-radius:15px}
+.editor-header{height:50px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #edf0f4;padding:0 19px;gap:8px}
+.editor-tabs,.console-tabs{display:flex;align-items:center;gap:22px;min-width:0}
+.editor-tabs button,.console-tabs button{background:none;border:0;color:#9aa5b5;padding:7px 0;font-size:12px;white-space:nowrap}
+.editor-tabs button.active,.console-tabs button.active{color:#536983}
+#coding-save-state{font-size:10px;color:#a0abba;white-space:nowrap}
+#coding-save-state.error{color:#aa7a7a}
+.editor-area{position:relative;flex:1;min-height:130px;overflow:hidden}
+.code-editor{height:100%;min-height:0}
+.coding-loading{position:absolute;inset:0;display:grid;place-items:center;z-index:3;background:#f8fafbef;color:#8696ab;font-size:13px}
+.coding-console{flex-shrink:0;height:188px;display:flex;flex-direction:column;border-top:1px solid #e7ecf2;background:#f9fafc80}
+.coding-console>header{display:flex;justify-content:space-between;align-items:center;height:39px;flex-shrink:0;padding:0 20px}
+.coding-console .text-button{font-size:10px}
+.console-panel{flex:1;min-height:0;overflow:auto;padding:0 20px 10px}
+#coding-input{display:block;width:100%;height:calc(100% - 23px);min-height:43px;resize:none;border:0;background:transparent;outline:none;font:12px/1.75 "Cascadia Code",Consolas,monospace;color:#6d7d94;padding:5px 0}
+#coding-input:focus-visible{outline:none}
+#coding-input-hint{font-size:10px;color:#98a3b2;margin:6px 0 0}
+#coding-result{margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.85 "Cascadia Code","Microsoft YaHei UI",Consolas,monospace;color:#6b7c92}
+.coding-check-status{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:11px;margin:5px 0 9px;color:#8d9aab}
+.coding-check-status .passed{color:#6b8c7a}
+.coding-check-status .failed{color:#ae7f7b}
+.coding-actions{display:flex;align-items:center;gap:9px;min-height:65px;padding:12px 18px;border-top:1px solid #e7ecf2;flex-shrink:0}
+.coding-actions .primary,.coding-actions .secondary{font-size:12px;min-height:35px;padding:8px 18px}
+.coding-actions .text-button{font-size:11px}
+#coding-progress{font-size:10px;color:#909daf;flex:1;min-width:0;line-height:1.7}
+.coding-picker{width:480px;max-width:calc(100vw - 48px);border:1px solid #e2e8f0;border-radius:19px;background:#f9fafc;padding:25px;box-shadow:0 20px 80px #3c4c6922;color:#52657f}
+.coding-picker::backdrop{background:#2e405034;backdrop-filter:blur(5px)}
+.coding-picker>header{display:flex;align-items:center;justify-content:space-between;margin-bottom:19px}
+.coding-picker h2{font-size:16px}
+#coding-search{width:100%;border:1px solid #dfe6ef;border-radius:22px;padding:11px 17px;background:#fff;font-size:13px;color:#52657f}
+.coding-search-results{height:310px;overflow:auto;margin-top:18px}
+.coding-search-results button{display:flex;gap:15px;width:100%;border:0;border-radius:8px;text-align:left;background:none;padding:11px 10px;font-size:13px;color:#586b84}
+.coding-search-results button:hover{background:#edf2f8}
+.coding-search-results button span:first-child{color:#9ba8ba;font-size:11px;min-width:29px;font-variant-numeric:tabular-nums}
+.coding-search-results p{font-size:12px;color:#9aa7b8;padding:10px}
+@media(max-width:1100px){.navigation button{padding:7px 16px;min-width:59px}.quiet-sync>span{display:none}.coding-workspace{grid-template-columns:minmax(240px,30%) minmax(0,1fr);gap:22px}.coding-toolbar{gap:14px}.coding-language{display:none}.coding-actions{gap:6px;padding:11px 12px}.coding-actions .primary,.coding-actions .secondary{padding:8px 13px;font-size:11px}.editor-header{padding:0 14px}.editor-tabs{gap:15px}.coding-description h1{font-size:23px}.coding-actions #coding-progress{font-size:9px}}
+@media(max-height:750px){.coding-page{padding-bottom:16px}.coding-toolbar{height:51px}.coding-description{padding-top:14px}.coding-console{height:159px}.coding-description h1{font-size:22px}.statement-tabs{margin-top:17px}.editor-header{height:43px}.coding-actions{min-height:56px}.coding-description>header{margin-bottom:12px}}

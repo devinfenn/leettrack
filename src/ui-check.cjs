@@ -1,0 +1,105 @@
+const fs=require('node:fs/promises');
+const path=require('node:path');
+const P=require('./practice.js');
+module.exports=async function check(window,root,options={}){
+  const dir=path.join(root,'artifacts','minimal-desktop');await fs.mkdir(dir,{recursive:true});
+  const wait=()=>new Promise(r=>setTimeout(r,180));
+  const js=source=>window.webContents.executeJavaScript(source);
+  const result=await js(`(async()=>{
+    await new Promise(r=>setTimeout(r,100));
+    const assert=(ok,message)=>{if(!ok)throw new Error(message)};
+    const click=id=>document.getElementById(id).click();
+    const count=id=>document.querySelectorAll('#'+id+' tr').length;
+    document.querySelector('[data-view="books"]').click();
+    assert(count('book-rows')===100,'Hot 100 catalogue incomplete');
+    const first=document.querySelector('#book-rows .problem-link').textContent;
+    const input=document.getElementById('book-search');input.value=first;input.dispatchEvent(new Event('input'));
+    assert(count('book-rows')>=1,'Matching search failed');
+    input.value='__nonexistent__';input.dispatchEvent(new Event('input'));
+    assert(count('book-rows')===0&&!document.getElementById('book-empty').hidden,'Search empty state failed');
+    document.dispatchEvent(new KeyboardEvent('keydown',{key:'k',ctrlKey:true}));
+    assert(document.activeElement===input,'Ctrl K failed');
+    document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape'}));
+    assert(input.value===''&&count('book-rows')===100,'Escape clear failed');
+    const select=document.getElementById('book-select');select.value='1';select.dispatchEvent(new Event('change'));
+    assert(count('book-rows')===150,'Interview 150 catalogue incomplete');
+    document.querySelector('[data-filter="practiced"]').click();
+    const practiced=count('book-rows');assert(practiced>0&&practiced<150,'Practiced filter failed');
+    document.querySelector('[data-filter="new"]').click();assert(count('book-rows')===150-practiced,'Unpracticed filter failed');
+    document.querySelector('[data-filter="all"]').click();select.value='0';select.dispatchEvent(new Event('change'));
+    document.querySelector('[data-view="today"]').click();click('show-records');
+    const dailyRecords=count('record-rows');assert(dailyRecords>0,'Saved records missing');
+    const search=document.getElementById('record-search');search.value='__nonexistent__';search.dispatchEvent(new Event('input'));
+    assert(!document.getElementById('records-empty').hidden,'Record empty state failed');search.value='';search.dispatchEvent(new Event('input'));
+    assert(document.getElementById('account-label').textContent===document.getElementById('account-name').textContent,'Connected account entry missing');
+    click('account-entry');assert(document.getElementById('settings').open,'Top account entry failed');click('settings-close');
+    click('settings-open');assert(document.getElementById('settings').open,'Settings failed');
+    assert(!document.getElementById('export').disabled,'Export disabled with saved records');click('settings-close');
+    document.querySelector('[data-view="today"]').click();
+    assert(document.documentElement.scrollWidth<=innerWidth,'Horizontal overflow');
+    return {catalogues:[100,150],search:true,filters:true,shortcuts:true,settings:true,dailyRecords};
+  })()`);
+  const snap=async name=>{console.log('CAPTURE',name);await new Promise(r=>setTimeout(r,500));await fs.writeFile(path.join(dir,name+'.png'),(await window.webContents.capturePage(undefined,{stayAwake:true})).toPNG());};
+  await snap('today');
+  await js(`document.querySelector('[data-view="books"]').click()`);await snap('books');
+  await js(`document.querySelector('[data-view="review"]').click()`);await snap('review');
+  await js(`document.getElementById('review-list-button').click()`);await snap('review-queue');
+  await js(`document.querySelector('[data-view="today"]').click();document.getElementById('show-records').click()`);await snap('records');
+  await js(`document.getElementById('settings-open').click()`);await snap('settings');await js(`document.getElementById('settings-close').click()`);
+  window.setSize(980,680);await wait();
+  for(const view of ['today','books','review']){
+    await js(`document.querySelector('[data-view="${view}"]').click()`);await wait();
+    const fits=await js(`(()=>{const page=document.querySelector('section.page:not([hidden])');const sync=document.getElementById('settings-open').getBoundingClientRect();const nav=document.querySelector('.navigation').getBoundingClientRect();const actions=document.querySelector('.appbar-actions').getBoundingClientRect();return document.documentElement.scrollWidth<=innerWidth && document.documentElement.scrollHeight<=innerHeight && sync.right<innerWidth-135 && actions.left>nav.right+8 && page.getBoundingClientRect().left>=0 && (document.querySelector('main').scrollHeight<=document.querySelector('main').clientHeight+1);})()`);
+    await snap(view+'-compact');if(!fits){console.log('OVERFLOW',await js(`JSON.stringify({innerHeight,main:document.querySelector('main').clientHeight,scroll:document.querySelector('main').scrollHeight,page:document.querySelector('section.page:not([hidden])').getBoundingClientRect().toJSON()})`));throw new Error('Compact layout overflow: '+view);}
+  }
+  result.compactFits=true;window.setSize(1240,860);await wait();
+  if(options.setState){
+    const today=P.dayKey(Date.now()/1000);const yesterday=P.shiftDay(today,-1);
+    let id=900;const r=(title,day,status='Accepted')=>({id:String(++id),title,slug:null,timestamp:Date.parse(day+'T12:00:00+08:00')/1000,status,pending:false});
+    const older=Array.from({length:8},(_,i)=>r('测试题 '+i,yesterday));
+    const sample={...options.state,account:'ui-test-only',records:older,lastSync:null,historyComplete:false};
+    await options.setState(sample);
+    await js(`document.querySelector('[data-view="today"]').click();if(document.getElementById('review-count').textContent!=='6')throw new Error('Daily review cap failed');document.getElementById('start-review').click();document.getElementById('review-skip').click();if(document.getElementById('review-position').textContent!=='2 / 6')throw new Error('Skip failed');document.getElementById('review-open').click()`);
+    await wait();if(!options.calls.some(x=>x.name==='open-submission'))throw new Error('Unknown slug fallback failed');
+    const firstSix=P.reviewQueue(older,[],today).map(x=>x.question.title);
+    const added=firstSix.map(title=>r(title,today));added.push(r(firstSix[0],today,'Wrong Answer'),r(firstSix[0],today));
+    await options.setState({...sample,records:[...older,...added]});
+    await js(`if(document.getElementById('review-focus').hidden||!document.getElementById('feedback-status').textContent.includes('补充'))throw new Error('AC feedback entry missing');document.querySelector('[data-view="today"]').click();if(document.getElementById('today-count').textContent!=='6')throw new Error('Daily dedup failed');if(document.getElementById('review-count').textContent!=='0')throw new Error('Review queue refilled');document.getElementById('show-records').click();if(document.querySelectorAll('#record-rows tr').length!==14)throw new Error('History dedup failed');document.querySelector('[data-view="books"]').click();document.querySelector('#book-rows .problem-link').click();document.getElementById('sync').click();document.getElementById('settings-open').click();document.getElementById('history').click();document.getElementById('export').click();document.getElementById('login').click();document.getElementById('settings-close').click()`);
+    await wait();for(const name of ['coding-load','sync','export','login'])if(!options.calls.some(x=>x.name===name))throw new Error('IPC missing: '+name);
+    if(!options.calls.some(x=>x.name==='sync'&&x.args[0]===true))throw new Error('History sync missing');
+    result.simulatedInteractions={dailyDedup:true,reviewCompletion:true,noRefill:true,skip:true,links:true,ipc:true};
+    await options.setState({...sample,reviewFeedback:[]});
+    await js(`document.querySelector('[data-view="today"]').click();document.getElementById('start-review').click()`);
+    for(const rating of ['independent','hint','failed']){
+      await js(`document.querySelector('[data-rating="${rating}"]').click()`);await wait();
+    }
+    await js(`if(document.getElementById('review-count').textContent!=='3')throw new Error('Feedback completion count wrong');document.getElementById('review-list-button').click();if(document.querySelectorAll('#review-queue button').length!==6)throw new Error('Feedback refilled daily queue');if(!document.getElementById('review-queue').textContent.includes('没做出'))throw new Error('Failed feedback mislabeled');document.querySelector('#review-queue button').click();if(!document.querySelector('[data-rating="independent"]').classList.contains('selected'))throw new Error('Feedback edit selection absent')`);
+    await js(`document.querySelector('[data-rating="failed"]').click()`);await wait();
+    await js(`if(document.getElementById('review-count').textContent!=='3')throw new Error('Edit counted twice');document.getElementById('review-list-button').click();if(!document.getElementById('review-queue').textContent.includes('没做出'))throw new Error('Edit not reflected');document.querySelectorAll('#review-queue button')[3].click()`);
+    options.setFeedbackFailure(true);await js(`document.querySelector('[data-rating="hint"]').click()`);await wait();options.setFeedbackFailure(false);
+    await js(`if(document.getElementById('review-count').textContent!=='3'||!document.getElementById('toast').textContent.includes('未保存'))throw new Error('Failed save changed completion')`);
+    result.simulatedInteractions.reviewFeedback={threeChoices:true,sameDayEdit:true,failedSavePreserved:true,noRefill:true};
+    await options.setState({...sample,historyRunning:true,historyPausing:false,busy:true,historyProgress:{pages:4,total:80}});
+    await js(`document.getElementById('settings-open').click();if(document.getElementById('history').disabled||document.getElementById('history').textContent!=='暂停')throw new Error('History pause unavailable');document.getElementById('history').click();document.getElementById('settings-close').click()`);
+    await wait();if(!options.calls.some(x=>x.name==='pause-history'))throw new Error('Pause IPC missing');
+    await options.setState({...sample,historyRunning:true,historyPausing:true,busy:true});
+    await js(`if(!document.getElementById('history').disabled||document.getElementById('history').textContent!=='暂停中')throw new Error('Pause state missing')`);
+    await options.setState({...sample,historyRunning:false,busy:false});
+    await js(`document.querySelector('[data-view="books"]').click();document.querySelector('#books-page .table-scroll').scrollTop=250`);
+    await options.setState({...sample,busy:true});
+    await js(`if(document.querySelector('#books-page .table-scroll').scrollTop!==250)throw new Error('Sync reset list scroll')`);
+    await options.setState({...sample,connection:'error',retryAt:Date.now()+30000,message:'网络连接失败'});
+    await js(`if(document.getElementById('notice').hidden||!document.getElementById('notice').textContent.includes('自动重试'))throw new Error('Retry notice missing')`);
+    result.simulatedInteractions.historyPause=true;result.simulatedInteractions.scrollPreserved=true;result.simulatedInteractions.retryNotice=true;
+    await options.setState({...sample,account:null,records:[],connection:'signed-out'});
+    const loginCalls=options.calls.filter(x=>x.name==='login').length;
+    await js(`if(document.getElementById('account-label').textContent!=='连接账号')throw new Error('Login label absent');document.getElementById('account-entry').click()`);
+    await wait();if(options.calls.filter(x=>x.name==='login').length!==loginCalls+1)throw new Error('Top login action failed');
+    result.simulatedInteractions.topLogin=true;
+    await js(`document.querySelector('[data-view="today"]').click();if(document.getElementById('empty-login').hidden)throw new Error('Sign-in entry absent');if(!document.getElementById('export').disabled)throw new Error('Empty export enabled')`);
+    await js(`document.querySelector('[data-view="review"]').click();if(document.getElementById('review-complete').hidden||!document.getElementById('review-list-button').disabled)throw new Error('Empty review page invalid')`);
+    await options.setState(options.state);
+  }
+  await js(`document.querySelector('[data-view="today"]').click()`);
+  await fs.writeFile(path.join(dir,'ui-check.json'),JSON.stringify(result,null,2));console.log('UI_CHECK_OK',JSON.stringify(result));
+};
