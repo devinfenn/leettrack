@@ -5,10 +5,12 @@
   const main=window.LeetEditor.create($('main-editor'),()=>changed('main'));
   let owner=null,loaded=null,mode='leetcode',busy=false,loading=false,loadSequence=0,saveTimer,saveSequence=0,savePromise=Promise.resolve(),restoring=false,compiler=null,pending=null,activeEditor='core',coreVersion=0,mainVersion=0;
   const inputs={leetcode:'',acm:''};let metadata=[];
+  let language='cpp';try{if(localStorage.getItem('leettrack.coding-language')==='java')language='java';}catch{}
+  const compilers={cpp:null,java:null};$('coding-language').value=language;
   const errorText=error=>String(error.message||error).replace(/^Error invoking remote method '[^']+': Error: /,'');
-  function message(text){$('coding-progress').textContent=text;}
+  function message(text){$('coding-progress').textContent=text;$('coding-progress').title=text;}
   function showError(error){$('coding-result').textContent=errorText(error);consoleTab('result');message('操作未完成');}
-  function draft(){return loaded?{version:1,slug:loaded.slug,core:core.get(),main:main.get(),mode,input:$('coding-input').value,inputs:{...inputs,[mode]:$('coding-input').value}}:null;}
+  function draft(){return loaded?{version:1,slug:loaded.slug,language:loaded.language,core:core.get(),main:main.get(),mode,input:$('coding-input').value,inputs:{...inputs,[mode]:$('coding-input').value}}:null;}
   async function flush(){
     clearTimeout(saveTimer);const value=draft();if(!value){await savePromise.catch(()=>{});return true;}
     const account=loaded.owner,sequence=++saveSequence;$('coding-save-state').textContent='正在保存…';
@@ -28,6 +30,7 @@
     $('coding-check').disabled=!ready||!compiler?.available||!loaded?.signature.supported;
     if(mode==='acm'&&!compiler?.available)$('coding-run').disabled=$('coding-submit').disabled=true;
     $('coding-picker-open').disabled=busy||loading;
+    $('coding-language').disabled=busy||loading;
     document.querySelectorAll('[data-mode]').forEach(n=>n.disabled=busy||loading);
     $('coding-stop').hidden=!busy;
     $('coding-run').textContent=pending?.kind==='run'?'继续查询':'运行样例';
@@ -49,17 +52,26 @@
     $('coding-input-hint').textContent=mode==='acm'?'ACM 模式：第一行 T；按左侧约定读取每组参数。':'LeetCode 模式：每个参数一行，与力扣站内格式一致。';
     if(mode!=='acm'&&activeEditor==='main')editorTab('core');
     if(mode!=='acm')statementTab('statement');
-    message(mode==='acm'?'先检查读写，再提交核心算法':'核心算法由力扣评测');controls();if(!restore)changed('input');
+    message(mode==='acm'?(compiler?.available?'先检查读写，再提交核心算法':compiler?.message||'正在检查本地编译器…'):'核心算法由力扣评测');controls();if(!restore)changed('input');
   }
-  async function open(slug,account=owner){
-    if(busy){message('当前程序仍在运行，可先停止。');return false;}
-    if(loaded&&loaded.slug===slug&&loaded.owner===account&&!loading){core.measure();main.measure();return true;}
+  async function open(slug,account=owner,nextLanguage=language){
+    if(busy||loading){message('请等待当前操作结束。');return false;}
+    if(!['cpp','java'].includes(nextLanguage))return false;
+    if(loaded&&loaded.slug===slug&&loaded.owner===account&&loaded.language===nextLanguage){core.measure();main.measure();return true;}
+    const previous=loaded;
     if(loaded&&!(await flush()))return false;
-    const sequence=++loadSequence;loading=true;loaded=null;$('coding-loading').hidden=false;controls();
+    if(busy||loading||account!==owner||loaded!==previous)return false;
+    const sequence=++loadSequence;loading=true;$('coding-loading').hidden=false;controls();
     $('coding-current-problem').textContent='正在载入…';
     try{
-      const response=await api.codingLoad(account,slug);if(sequence!==loadSequence||account!==owner)return false;
-      loaded={...response.problem,owner:account};const saved=response.draft;
+      const response=await api.codingLoad(account,slug,nextLanguage);if(sequence!==loadSequence||account!==owner)return false;
+      language=nextLanguage;$('coding-language').value=language;compiler=compilers[language];
+      try{localStorage.setItem('leettrack.coding-language',language);}catch{}
+      core.setLanguage(language);main.setLanguage(language);
+      $('core-editor').setAttribute('aria-label','核心算法 '+(language==='java'?'Java':'C++')+' 编辑器');
+      $('main-editor').setAttribute('aria-label','输入输出 main '+(language==='java'?'Java':'C++')+' 编辑器');
+      void ensureCompiler(false,language);
+      loaded={...response.problem,language,owner:account};const saved=response.draft;
       restoring=true;core.set(saved?.core??loaded.core);main.set(saved?.main??loaded.main);restoring=false;coreVersion=mainVersion=0;
       inputs.leetcode=saved?.inputs?.leetcode??loaded.examples;inputs.acm=saved?.inputs?.acm??loaded.acmInput;
       if(saved)inputs[saved.mode]=saved.input;
@@ -76,12 +88,13 @@
       editorTab('core');statementTab('statement');consoleTab('input');setMode(saved?.mode==='acm'&&loaded.signature.supported?'acm':'leetcode',{restore:true});
       if(response.draftError)showError(response.draftError);
       return true;
-    }catch(error){if(sequence===loadSequence){$('coding-current-problem').textContent='重新选择题目';showError(error);}return false;}
+    }catch(error){if(sequence===loadSequence){$('coding-current-problem').textContent=loaded?loaded.number+' · '+loaded.title:'重新选择题目';$('coding-language').value=language;showError(error);}return false;}
     finally{if(sequence===loadSequence){loading=false;$('coding-loading').hidden=true;controls();core.measure();}}
   }
-  function displayCompiler(result){compiler=result;$('coding-compiler-state').textContent=compiler.available?compiler.compiler:compiler.message;$('coding-language').title=$('coding-compiler-state').textContent;controls();}
-  async function ensureCompiler(force=false){
-    if(compiler&&!force)return;try{displayCompiler(await api.codingCompiler());}catch(error){$('coding-compiler-state').textContent=errorText(error);}
+  function displayCompiler(result,target=language){compilers[target]=result;const text=result.available?result.compiler:result.message;$(target==='java'?'coding-java-compiler-state':'coding-compiler-state').textContent=text;if(target===language){compiler=result;$('coding-language').title=text;if(mode==='acm'&&!busy)message(result.available?'先检查读写，再提交核心算法':result.message);}controls();}
+  async function ensureCompiler(force=false,target){
+    if(!target){await Promise.all(['cpp','java'].map(value=>ensureCompiler(force,value)));return;}
+    if(compilers[target]&&!force)return;try{displayCompiler(await api.codingCompiler(target),target);}catch(error){displayCompiler({available:false,message:errorText(error)},target);}
   }
   function ioResult(result,version){
     if(result.stage==='compile'){status('input','未完成');status('output','未完成');return '输入输出编译失败\n'+result.details;}
@@ -107,13 +120,14 @@
   async function action(kind){
     if(!loaded||busy||loading)return;
     if(kind!=='check'&&!(mode==='acm'&&kind==='run')&&!owner){await api.login();message('登录后，再点击运行或提交。');return;}
-    if(!(await flush()))return;
+    const expected=loaded;
+    if(!(await flush())||busy||loading||loaded!==expected)return;
     const snapshot=loaded,coreRev=coreVersion,mainRev=mainVersion;busy=true;controls();consoleTab('result');
     $('coding-result').textContent=kind==='check'?'正在检查输入输出…':'正在处理…';
     try{
-      const payload={slug:loaded.slug,core:core.get(),main:main.get(),mode,input:$('coding-input').value};let result;
+      const payload={slug:loaded.slug,language:loaded.language,core:core.get(),main:main.get(),mode,input:$('coding-input').value};let result;
       if(pending&&pending.kind===(kind==='submit'?'submit':'run')&&kind!=='check')result=await api.codingPoll(owner,pending.id);
-      else if(kind==='check')result=await api.codingCheck(owner,loaded.slug,payload.main);
+      else if(kind==='check')result=await api.codingCheck(owner,loaded.slug,payload.main,loaded.language);
       else result=await (kind==='submit'?api.codingSubmit(owner,payload):api.codingRun(owner,payload));
       if(loaded!==snapshot)return;
       let text;
@@ -151,8 +165,12 @@
   $('coding-source').onclick=()=>loaded&&api.openProblem(loaded.slug);
   $('coding-statement').onclick=event=>{const link=event.target.closest('a');if(link){event.preventDefault();if(loaded)void api.openProblem(loaded.slug);}};
   $('coding-check').onclick=()=>action('check');$('coding-run').onclick=()=>action('run');$('coding-submit').onclick=()=>action('submit');$('coding-stop').onclick=()=>{void api.codingCancel();message('正在停止…');};
-  $('coding-choose-compiler').onclick=async()=>{const button=$('coding-choose-compiler');button.disabled=true;try{const result=await api.codingChooseCompiler();if(result)displayCompiler(result);}catch(error){$('coding-compiler-state').textContent=errorText(error);}finally{button.disabled=false;}};
-  $('coding-compiler-guide').onclick=()=>api.codingCompilerGuide();
+  for(const target of ['cpp','java']){
+    const button=$(target==='java'?'coding-choose-java-compiler':'coding-choose-compiler');
+    button.onclick=async()=>{button.disabled=true;try{const result=await api.codingChooseCompiler(target);if(result)displayCompiler(result,target);}catch(error){$(target==='java'?'coding-java-compiler-state':'coding-compiler-state').textContent=errorText(error);}finally{button.disabled=false;}};
+    $(target==='java'?'coding-java-compiler-guide':'coding-compiler-guide').onclick=()=>api.codingCompilerGuide(target);
+  }
+  $('coding-language').onchange=async()=>{const next=$('coding-language').value;$('coding-language').value=language;await open(loaded?.slug||'two-sum',owner,next);};
   api.onCodingProgress(progress=>{if(loaded&&progress.slug===loaded.slug&&progress.owner===loaded.owner)message(progress.message);});
   document.addEventListener('keydown',event=>{
     if($('coding-page').hidden)return;

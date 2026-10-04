@@ -57,7 +57,7 @@
     <header class="coding-toolbar">
       <button id="coding-picker-open" class="coding-problem-button" title="选择题目"><span id="coding-current-problem">选择一道题</span><span aria-hidden="true">⌄</span></button>
       <div class="coding-mode" aria-label="编程模式"><button data-mode="leetcode" class="active" aria-pressed="true">LeetCode</button><button data-mode="acm" aria-pressed="false">ACM</button></div>
-      <span id="coding-language" class="coding-language">C++ 17</span>
+      <select id="coding-language" class="coding-language" aria-label="编程语言"><option value="cpp">C++ 17</option><option value="java">Java</option></select>
     </header>
     <div class="coding-workspace">
       <aside class="coding-description">
@@ -93,6 +93,8 @@
   <section class="settings-section"><div><h3>导出记录</h3><p>保存一份本地 JSON 备份</p></div><button id="export" class="secondary" disabled>导出</button></section>
   <section class="settings-section"><div><h3>本地 C++ 编译器</h3><p id="coding-compiler-state">正在检查…</p></div><button id="coding-choose-compiler" class="secondary">选择编译器</button></section>
   <p class="small-note">仅 ACM 本地运行需要。<button id="coding-compiler-guide" class="text-button">安装说明 ↗</button></p>
+  <section class="settings-section"><div><h3>本地 Java 编译器</h3><p id="coding-java-compiler-state">正在检查…</p></div><button id="coding-choose-java-compiler" class="secondary">选择 JDK</button></section>
+  <p class="small-note">Java ACM 需要 JDK 17 或更新版本。<button id="coding-java-compiler-guide" class="text-button">安装说明 ↗</button></p>
   <div class="review-rule"><h3>复习安排</h3><p>每天最多 6 道。独立做出：按 1、3、7、14、30、60 天延长间隔；需要提示：2 天后复习；没做出：明天优先复习。同一天修改反馈只计算一次。尚无反馈的题，按通过的练习日期安排。</p></div>
   <p class="settings-note">仅依据本地已同步记录。每 5 分钟同步，返回软件时检查新记录。</p>
 </dialog>

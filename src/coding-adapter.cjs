@@ -1,5 +1,6 @@
 'use strict';
 const TYPES={integer:'int',int:'int',long:'long long',double:'double',float:'double',boolean:'bool',bool:'bool',string:'string',character:'char',char:'char'};
+const J=require('./coding-java.cjs');
 const identifier=value=>typeof value==='string'&&/^[A-Za-z_][A-Za-z0-9_]*$/.test(value);
 function typeOf(value){
   let name=String(value||'void').replace(/\s/g,'').replace(/String/g,'string');
@@ -7,7 +8,7 @@ function typeOf(value){
   name=normalize(name);let depth=0;
   while(name.endsWith('[]')){depth++;name=name.slice(0,-2);}
   if(!TYPES[name]||depth>2)return null;
-  return {base:name,depth,cpp:'vector<'.repeat(depth)+TYPES[name]+'>'.repeat(depth),name};
+  return {base:name,depth,cpp:'vector<'.repeat(depth)+TYPES[name]+'>'.repeat(depth),name,javaType:J.typeInfo(value)};
 }
 function signature(metadata){
   let meta;try{meta=typeof metadata==='string'?JSON.parse(metadata):metadata;}catch{return {supported:false,reason:'题目函数元信息无法读取。'};}

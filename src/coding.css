@@ -1,4 +1,5 @@
 .coding-page{max-width:1200px;flex:1;min-height:0;display:flex;flex-direction:column;padding:6px 0 22px}
+select.coding-language{border:1px solid #dfe6ef;border-radius:20px;background:#ffffff90;color:#60738e;padding:8px 12px;min-width:98px;cursor:pointer}
 main.coding-active{padding:0 28px;overflow:hidden}
 .coding-toolbar{height:63px;flex-shrink:0;display:flex;align-items:center;gap:20px}
 .coding-problem-button{display:flex;align-items:center;gap:12px;min-width:0;max-width:54%;margin-right:auto;border:0;background:none;padding:8px 0;font-size:16px;color:#46566d;text-align:left}
@@ -64,5 +65,5 @@ main.coding-active{padding:0 28px;overflow:hidden}
 .coding-search-results button:hover{background:#edf2f8}
 .coding-search-results button span:first-child{color:#9ba8ba;font-size:11px;min-width:29px;font-variant-numeric:tabular-nums}
 .coding-search-results p{font-size:12px;color:#9aa7b8;padding:10px}
-@media(max-width:1100px){.navigation button{padding:7px 16px;min-width:59px}.quiet-sync>span{display:none}.coding-workspace{grid-template-columns:minmax(240px,30%) minmax(0,1fr);gap:22px}.coding-toolbar{gap:14px}.coding-language{display:none}.coding-actions{gap:6px;padding:11px 12px}.coding-actions .primary,.coding-actions .secondary{padding:8px 13px;font-size:11px}.editor-header{padding:0 14px}.editor-tabs{gap:15px}.coding-description h1{font-size:23px}.coding-actions #coding-progress{font-size:9px}}
+@media(max-width:1100px){.navigation button{padding:7px 16px;min-width:59px}.quiet-sync>span{display:none}.coding-workspace{grid-template-columns:minmax(240px,30%) minmax(0,1fr);gap:22px}.coding-toolbar{gap:14px}.coding-language{display:block;flex-shrink:0}.coding-actions{gap:6px;padding:11px 12px}.coding-actions .primary,.coding-actions .secondary{padding:8px 13px;font-size:11px}.editor-header{padding:0 14px}.editor-tabs{gap:15px}.coding-description h1{font-size:23px}.coding-actions #coding-progress{font-size:9px}}
 @media(max-height:750px){.coding-page{padding-bottom:16px}.coding-toolbar{height:51px}.coding-description{padding-top:14px}.coding-console{height:159px}.coding-description h1{font-size:22px}.statement-tabs{margin-top:17px}.editor-header{height:43px}.coding-actions{min-height:56px}.coding-description>header{margin-bottom:12px}}

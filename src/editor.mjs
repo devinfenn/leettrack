@@ -1,9 +1,10 @@
 import {EditorView,basicSetup} from 'codemirror';
-import {EditorState} from '@codemirror/state';
+import {EditorState,Compartment} from '@codemirror/state';
 import {keymap} from '@codemirror/view';
 import {indentWithTab} from '@codemirror/commands';
 import {syntaxHighlighting,HighlightStyle} from '@codemirror/language';
 import {cpp} from '@codemirror/lang-cpp';
+import {java} from '@codemirror/lang-java';
 import {tags} from '@lezer/highlight';
 import DOMPurify from 'dompurify';
 const theme=EditorView.theme({
@@ -32,9 +33,10 @@ const highlight=HighlightStyle.define([
 ]);
 window.LeetEditor={
   create(parent,onChange){
-    const extensions=[basicSetup,cpp(),keymap.of([indentWithTab]),EditorState.tabSize.of(4),theme,syntaxHighlighting(highlight),EditorView.cspNonce.of('leettrack-editor'),EditorView.updateListener.of(update=>{if(update.docChanged)onChange();})];
-    const view=new EditorView({extensions,parent});
-    return {get:()=>view.state.doc.toString(),set:doc=>view.setState(EditorState.create({doc,extensions})),replace:doc=>view.dispatch({changes:{from:0,to:view.state.doc.length,insert:doc}}),focus:()=>view.focus(),measure:()=>view.requestMeasure()};
+    const slot=new Compartment();let language='cpp';
+    const extensions=()=>[basicSetup,slot.of(language==='java'?java():cpp()),keymap.of([indentWithTab]),EditorState.tabSize.of(4),theme,syntaxHighlighting(highlight),EditorView.cspNonce.of('leettrack-editor'),EditorView.updateListener.of(update=>{if(update.docChanged)onChange();})];
+    const view=new EditorView({extensions:extensions(),parent});
+    return {get:()=>view.state.doc.toString(),set:doc=>view.setState(EditorState.create({doc,extensions:extensions()})),setLanguage:next=>{language=next;view.dispatch({effects:slot.reconfigure(language==='java'?java():cpp())});},replace:doc=>view.dispatch({changes:{from:0,to:view.state.doc.length,insert:doc}}),focus:()=>view.focus(),measure:()=>view.requestMeasure()};
   },
   sanitize:html=>DOMPurify.sanitize(html,{ALLOWED_TAGS:['p','strong','em','b','i','u','s','pre','code','ul','ol','li','br','div','span','sub','sup','table','thead','tbody','tr','td','th','blockquote','h3','h4','a'],ALLOWED_ATTR:['href'],ALLOW_DATA_ATTR:false})
 };

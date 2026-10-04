@@ -13,7 +13,8 @@ module.exports=async({app,mainWindow,DATA,codingRunner,store,reviewStore})=>{
     if(document.getElementById('account-label').textContent!=='连接账号')throw new Error('Installer contains an account');
     const settings=document.getElementById('settings');document.getElementById('settings-open').click();
     await window.LeetCoding.ensureCompiler(true);
-    if(!settings.open||!document.getElementById('coding-choose-compiler'))throw new Error('Compiler setup is missing');
+    if(!settings.open||!document.getElementById('coding-choose-compiler')||!document.getElementById('coding-choose-java-compiler'))throw new Error('Compiler setup is missing');
+    if(document.getElementById('coding-language').options.length!==2)throw new Error('Language selector is missing');
     settings.close();await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
     if(document.documentElement.scrollWidth>innerWidth)throw new Error('Packaged layout overflows');
   })()`);
@@ -28,12 +29,18 @@ module.exports=async({app,mainWindow,DATA,codingRunner,store,reviewStore})=>{
   const drafts=new CodingStore(path.join(DATA,'coding'));
   await drafts.save(null,{version:1,slug:'two-sum',core:'// Installation fixture',main:'',mode:'leetcode',input:''});
   assert.equal((await drafts.draft(null,'two-sum')).core,'// Installation fixture');
+  await drafts.save(null,{version:1,language:'java',slug:'two-sum',core:'// Java installation fixture',main:'',mode:'leetcode',input:''});
+  assert.equal((await drafts.draft(null,'two-sum','java')).core,'// Java installation fixture');
+  assert.equal((await drafts.draft(null,'two-sum')).core,'// Installation fixture');
   const detected=await codingRunner.availability();let localRun=null;
   if(detected.available){localRun=await codingRunner.run('','int main(){cout << "installed C++ works";return 0;}','');assert.equal(localRun.stdout,'installed C++ works');assert.equal(localRun.passed,true);}
+  const javaDetected=await codingRunner.availability('java');let javaRun=null;
+  if(javaDetected.available){javaRun=await codingRunner.run('','public class Main {public static void main(String[] args){LT.printAnswer("installed Java works");}}','',{language:'java'});assert.equal(javaRun.stdout.trim(),'installed Java works');assert.equal(javaRun.passed,true);}
   const missing=new CodingRunner(path.join(DATA,'coding','missing-check'),{compiler:path.join(DATA,'nonexistent','g++.exe')});
   assert.equal((await missing.availability()).available,false);
   await fs.unlink(store.filename(account));await fs.unlink(reviewStore.filename(account));await fs.unlink(drafts.filename(null,'two-sum'));
-  const report={packaged:app.isPackaged,version:app.getVersion(),dataDirectory:DATA,resourcesPath:process.resourcesPath,ui:true,records:true,reviews:true,drafts:true,compiler:detected,localRun:localRun?.passed??null,missingCompilerHandled:true};
+  await fs.unlink(drafts.filename(null,'two-sum','drafts','java'));
+  const report={packaged:app.isPackaged,version:app.getVersion(),dataDirectory:DATA,resourcesPath:process.resourcesPath,ui:true,records:true,reviews:true,drafts:true,compiler:detected,localRun:localRun?.passed??null,javaCompiler:javaDetected,javaRun:javaRun?.passed??null,missingCompilerHandled:true};
   await fs.writeFile(path.join(directory,'report.json'),JSON.stringify(report,null,2),'utf8');
   console.log('INSTALLATION_CHECK_OK',JSON.stringify(report));
 };

@@ -8,6 +8,7 @@ const {resolveMetadata} = require('./metadata.cjs');
 const {CodingService}=require('./coding.cjs');
 const {CodingStore}=require('./coding-store.cjs');
 const {CodingRunner}=require('./coding-runner.cjs');
+const {languageOf}=require('./coding-languages.cjs');
 const {dataDirectory}=require('./app-paths.cjs');
 
 const ROOT = path.resolve(__dirname, '..');
@@ -155,33 +156,43 @@ app.whenReady().then(async () => {
     if (event.sender !== mainWindow.webContents || event.senderFrame !== mainWindow.webContents.mainFrame) throw new Error('Invalid caller');
     return fn(...args);
   });}
-  let selectedCompiler;
-  try{const prefs=JSON.parse(await fs.readFile(path.join(DATA,'preferences.json'),'utf8'));if(typeof prefs.compiler==='string'&&path.isAbsolute(prefs.compiler))selectedCompiler=prefs.compiler;}catch{}
-  const codingRunner=new CodingRunner(path.join(DATA,'coding','jobs'),selectedCompiler?{compiler:selectedCompiler}:{});
+  let preferences={};
+  try{preferences=JSON.parse(await fs.readFile(path.join(DATA,'preferences.json'),'utf8'))||{};}catch{}
+  const compilerOptions={};
+  for(const key of ['compiler','javaCompiler'])if(typeof preferences[key]==='string'&&path.isAbsolute(preferences[key]))compilerOptions[key]=preferences[key];
+  const codingRunner=new CodingRunner(path.join(DATA,'coding','jobs'),compilerOptions);
   coding=new CodingService({store:new CodingStore(path.join(DATA,'coding')),runner:codingRunner,request:codingRequest,identity,getAccount:()=>state.account,
     onProgress:progress=>{if(mainWindow&&!mainWindow.isDestroyed())mainWindow.webContents.send('coding-progress',progress);},
     onSubmitted:owner=>{if(!quitting&&state.account===owner)void sync();}});
-  handle('coding-load',(owner,slug)=>coding.load(owner,slug));
+  handle('coding-load',(owner,slug,language)=>coding.load(owner,slug,language));
   handle('coding-save',(owner,draft)=>coding.save(owner,draft));
-  handle('coding-check',(owner,slug,main)=>coding.check(owner,slug,main));
+  handle('coding-check',(owner,slug,main,language)=>coding.check(owner,slug,main,language));
   handle('coding-run',(owner,payload)=>coding.run(owner,payload));
   handle('coding-submit',(owner,payload)=>coding.submit(owner,payload));
   handle('coding-poll',(owner,id)=>coding.resume(owner,id));
   handle('coding-cancel',()=>coding.cancel());
-  handle('coding-compiler',()=>codingRunner.availability());
-  handle('coding-choose-compiler',async()=>{
+  handle('coding-compiler',language=>codingRunner.availability(language));
+  let choosingCompiler=false;
+  handle('coding-choose-compiler',async(language='cpp')=>{
+    languageOf(language);
+    if(choosingCompiler)throw new Error('请先完成当前编译器选择。');
     if(coding.active)throw new Error('请等待当前编程操作结束后再更换编译器。');
-    const result=await dialog.showOpenDialog(mainWindow,{title:'选择 g++ 编译器',properties:['openFile'],filters:[{name:'C++ 编译器 (g++.exe)',extensions:['exe']}]});
-    if(result.canceled)return null;
-    const candidate=result.filePaths[0];if(!path.isAbsolute(candidate)||!/^g\+\+(?:\.exe)?$/i.test(path.basename(candidate)))throw new Error('请选择编译器目录中的 g++.exe。');
-    const previous=codingRunner.compiler;codingRunner.compiler=candidate;
+    choosingCompiler=true;
     try{
-      const detected=await codingRunner.availability();if(!detected.available)throw new Error('这个 g++ 无法运行，请确认安装完整后重试。');
-      const file=path.join(DATA,'preferences.json');await fs.writeFile(file+'.tmp',JSON.stringify({compiler:candidate},null,2),'utf8');await fs.rename(file+'.tmp',file);
+    const isJava=language==='java',name=isJava?'javac':'g++',key=isJava?'javaCompiler':'compiler';
+    const result=await dialog.showOpenDialog(mainWindow,{title:'选择 '+(isJava?'JDK 的 javac.exe':'g++ 编译器'),properties:['openFile'],filters:[{name:name+'.exe',extensions:['exe']}]});
+    if(result.canceled)return null;
+    const candidate=result.filePaths[0];if(!path.isAbsolute(candidate)||!(isJava?/^javac(?:\.exe)?$/i:/^g\+\+(?:\.exe)?$/i).test(path.basename(candidate)))throw new Error('请选择编译器目录中的 '+name+'.exe。');
+    const previous=codingRunner[key];codingRunner[key]=candidate;
+    try{
+      const detected=await codingRunner.availability(language);if(!detected.available)throw new Error(detected.message||'编译器无法运行，请确认安装完整后重试。');
+      const next={...preferences,[key]:candidate};
+      const file=path.join(DATA,'preferences.json');await fs.writeFile(file+'.tmp',JSON.stringify(next,null,2),'utf8');await fs.rename(file+'.tmp',file);preferences=next;
       return detected;
-    }catch(error){codingRunner.compiler=previous;throw error;}
+    }catch(error){codingRunner[key]=previous;throw error;}
+    }finally{choosingCompiler=false;}
   });
-  handle('coding-compiler-guide',()=>shell.openExternal('https://www.msys2.org/'));
+  handle('coding-compiler-guide',(language='cpp')=>{languageOf(language);return shell.openExternal(language==='java'?'https://adoptium.net/temurin/releases/?version=17':'https://www.msys2.org/');});
   let closing=false,flushingDraft=false;
   mainWindow.on('close',event=>{
     if(closing)return;
@@ -240,6 +251,7 @@ app.whenReady().then(async () => {
   if (!app.isPackaged && process.argv.includes('--verify-coding')) {
     await sync();
     await require('./coding-live-check.cjs')(coding,mainWindow,ROOT,state.account);
+    if(process.argv.includes('--verify-coding-exit')){app.quit();return;}
   }
   mainWindow.on('focus',()=>{if(!loginWindow)void tracker.refresh();});
   powerMonitor.on('resume',()=>{if(!loginWindow)void tracker.refresh();});
